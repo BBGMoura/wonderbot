@@ -9,7 +9,7 @@ Picks up Linear tickets for the booking system and opens PRs in `booking-ui` and
 Linear: move ticket to "Ready for Wonderbot"
         │
         ▼
-Scheduled run (02:00, 09:00, 18:00 UTC) or "Run workflow" button
+Scheduled run (02:00, 06:00, 13:00, 18:00 UTC) or "Run workflow" button
         │
         ├─ fewer than 5 open wonderbot PRs?            no → stop
         ├─ take Ready tickets, highest priority first,
