@@ -1,0 +1,162 @@
+name: Wonderbot
+
+on:
+  schedule:
+    # Every 2 hours, 08:00–22:00 UTC. Runs with nothing to do finish in under a minute.
+    - cron: "0 8-22/2 * * *"
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: "Run one specific ticket (e.g. BOO-24). Leave empty to pick from the queue."
+        required: false
+        default: ""
+
+# One run at a time. A run that starts while another is still working waits for it,
+# so two runs can never count the same free slots or claim the same ticket.
+concurrency:
+  group: wonderbot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TARGET_REPOS: BBGMoura/booking-ui,BBGMoura/booking-system
+  LINEAR_TEAM_KEY: BOO
+  READY_STATUS: Ready for Wonderbot
+  IN_PROGRESS_STATUS: In Progress
+  IN_REVIEW_STATUS: In Review
+  NEEDS_INFO_STATUS: Needs Info
+  MAX_OPEN_PRS: ${{ vars.WONDERBOT_MAX_OPEN_PRS || '5' }}
+  PR_LABEL: wonderbot
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+      count: ${{ steps.pick.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Wonderbot app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.WONDERBOT_APP_ID }}
+          private-key: ${{ secrets.WONDERBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: booking-ui,booking-system
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Make sure the PR label exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          for repo in ${TARGET_REPOS//,/ }; do
+            gh label create "$PR_LABEL" -R "$repo" --color 7B61FF --description "Opened by Wonderbot" --force
+          done
+
+      - name: Pick tickets
+        id: pick
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          MANUAL_TICKET: ${{ inputs.ticket }}
+        run: node scripts/pick-tickets.mjs
+
+  work:
+    needs: pick
+    if: needs.pick.outputs.count != '0'
+    name: ${{ matrix.identifier }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.pick.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Wonderbot app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.WONDERBOT_APP_ID }}
+          private-key: ${{ secrets.WONDERBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: booking-ui,booking-system
+
+      - name: Check out booking-ui
+        uses: actions/checkout@v4
+        with:
+          repository: BBGMoura/booking-ui
+          path: booking-ui
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 50
+
+      - name: Check out booking-system
+        uses: actions/checkout@v4
+        with:
+          repository: BBGMoura/booking-system
+          path: booking-system
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 50
+
+      # Commits show up as the app (e.g. "wonderbot-bbg[bot]"), not as you.
+      - name: Set git identity
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          user_id=$(gh api "/users/${SLUG}[bot]" --jq .id)
+          git config --global user.name "${SLUG}[bot]"
+          git config --global user.email "${user_id}+${SLUG}[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: booking-ui/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: booking-system/**/pom.xml
+
+      - name: Build prompt from the Linear ticket
+        id: prompt
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          ISSUE_ID: ${{ matrix.id }}
+        run: node scripts/build-prompt.mjs
+
+      - name: Run Claude
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          claude_args: |
+            --max-turns 200
+            --allowedTools "Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh pr view:*),Bash(npm ci),Bash(npm run lint),Bash(npm run format),Bash(npm run format:check),Bash(npm test:*),Bash(npm run build),Bash(npx jest:*),Bash(./mvnw:*)"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(gh pr merge:*)"
+            --json-schema '{"type":"object","properties":{"outcome":{"type":"string","enum":["pr_opened","needs_info","failed"]},"summary":{"type":"string","description":"2-4 sentences for the Linear ticket: what you did, or why you stopped"},"pull_requests":{"type":"array","items":{"type":"object","properties":{"repo":{"type":"string"},"url":{"type":"string"}},"required":["repo","url"]}},"questions":{"type":"array","items":{"type":"string"}}},"required":["outcome","summary"]}'
+
+      - name: Report back to Linear
+        if: always()
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          ISSUE_ID: ${{ matrix.id }}
+          CLAUDE_CONCLUSION: ${{ steps.claude.outcome }}
+          STRUCTURED_OUTPUT: ${{ steps.claude.outputs.structured_output }}
+        run: node scripts/report.mjs
