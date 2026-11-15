@@ -45,7 +45,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.WONDERBOT_APP_ID }}
+          app-id: ${{ vars.WONDERBOT_APP_ID || secrets.WONDERBOT_APP_ID }}
           private-key: ${{ secrets.WONDERBOT_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: booking-ui,booking-system
@@ -86,7 +86,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.WONDERBOT_APP_ID }}
+          app-id: ${{ vars.WONDERBOT_APP_ID || secrets.WONDERBOT_APP_ID }}
           private-key: ${{ secrets.WONDERBOT_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: booking-ui,booking-system
