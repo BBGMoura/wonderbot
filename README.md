@@ -9,7 +9,7 @@ Picks up Linear tickets for the booking system and opens PRs in `booking-ui` and
 Linear: move ticket to "Ready for Wonderbot"
         │
         ▼
-Scheduled run (every 2h, 08:00–22:00 UTC) or "Run workflow" button
+Scheduled run (09:00, 13:00, 18:00 UTC) or "Run workflow" button
         │
         ├─ fewer than 5 open wonderbot PRs?            no → stop
         ├─ take Ready tickets, highest priority first,
@@ -30,6 +30,8 @@ You review and merge → Linear moves the ticket to Done
   Since Done happens on merge, dependent work always starts from merged code.
 - **Cap:** at most 5 open wonderbot PRs across both repos (change it with the
   `WONDERBOT_MAX_OPEN_PRS` variable). A ticket that touches both repos opens 2 PRs.
+- **Needs Info and failures don't use a slot:** the cap counts open PRs, and these tickets
+  have none.
 - **Failures:** the ticket goes to "Needs Info" with a link to the logs, so it isn't retried
   on every run. Move it back to Ready to retry.
 - **Answers:** reply to Wonderbot's questions in a Linear comment, then move the ticket back

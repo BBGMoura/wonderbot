@@ -2,8 +2,9 @@ name: Wonderbot
 
 on:
   schedule:
-    # Every 2 hours, 08:00–22:00 UTC. Runs with nothing to do finish in under a minute.
-    - cron: "0 8-22/2 * * *"
+    # 09:00, 13:00 and 18:00 UTC (London time in winter, an hour later in summer).
+    # Runs with nothing to do finish in under a minute.
+    - cron: "0 9,13,18 * * *"
   workflow_dispatch:
     inputs:
       ticket:
