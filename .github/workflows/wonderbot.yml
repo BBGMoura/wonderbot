@@ -2,9 +2,11 @@ name: Wonderbot
 
 on:
   schedule:
-    # 02:00, 13:00 and 18:00 UTC (London time in winter, an hour later in summer).
+    # 01:37, 12:37 and 17:37 UTC (London time in winter, an hour later in summer).
+    # Off the hour on purpose: GitHub queues scheduled runs and the top of the hour is its
+    # busiest time, so ":00" schedules get delayed by hours or dropped.
     # Runs with nothing to do finish in under a minute.
-    - cron: "0 2,13,18 * * *"
+    - cron: "37 1,12,17 * * *"
   workflow_dispatch:
     inputs:
       ticket:
