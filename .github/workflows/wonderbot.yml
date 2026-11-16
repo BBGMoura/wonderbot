@@ -149,9 +149,11 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
           prompt: ${{ steps.prompt.outputs.prompt }}
+          # shadcn components are copied in from online registries (shadcn's own and
+          # FullCalendar's), so tickets that add one need the CLI and the registry docs.
           claude_args: |
             --max-turns 200
-            --allowedTools "Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh pr view:*),Bash(npm ci),Bash(npm run lint),Bash(npm run format),Bash(npm run format:check),Bash(npm test:*),Bash(npm run build),Bash(npx jest:*),Bash(./mvnw:*)"
+            --allowedTools "Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh pr view:*),Bash(npm ci),Bash(npm run lint),Bash(npm run format),Bash(npm run format:check),Bash(npm test:*),Bash(npm run build),Bash(npx jest:*),Bash(npx shadcn@latest add:*),Bash(npx shadcn add:*),Bash(npm uninstall:*),Bash(./mvnw:*),WebFetch(domain:ui.shadcn.com),WebFetch(domain:ui.fullcalendar.io)"
             --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(gh pr merge:*)"
             --json-schema '{"type":"object","properties":{"outcome":{"type":"string","enum":["pr_opened","needs_info","failed"]},"summary":{"type":"string","description":"2-4 sentences for the Linear ticket: what you did, or why you stopped"},"pull_requests":{"type":"array","items":{"type":"object","properties":{"repo":{"type":"string"},"url":{"type":"string"}},"required":["repo","url"]}},"questions":{"type":"array","items":{"type":"string"}}},"required":["outcome","summary"]}'
 
