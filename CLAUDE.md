@@ -13,8 +13,19 @@ Two repos are checked out side by side in this workspace:
 | `booking-system/` | BBGMoura/booking-system | Java 21, Spring Boot 3.5, Maven multi-module (`booking-system-app`, `booking-system-it`), PostgreSQL, Flyway | `master` |
 
 - The UI talks to the backend over REST via Axios (`booking-ui/src/lib/api`). If a ticket changes
-  an API contract, the backend and UI types must match — read the controller and DTOs before
-  writing UI types.
+  or consumes an API contract, the backend and UI types must match. Type against what goes over
+  the wire, not what a Java signature or your memory of Spring suggests:
+  - Read the controller and DTOs, and also the global web/JSON config that changes serialisation
+    (for example `common/config/JsonConfig.java` serialises `Page<T>` as Spring Data's
+    `PagedModel`: `{ content, page: { size, number, totalElements, totalPages } }`, with no
+    `first`/`last`).
+  - Enum query params are case-sensitive (`Sort.Direction` accepts `ASC`/`DESC`, not `asc`).
+  - Use the backend's controller tests (`*ControllerTest`) and integration tests (`*IT`) as the
+    source of real request and response examples. If none covers the shape or value you rely on,
+    run a quick `@WebMvcTest` (don't commit it) and say so under "How I tested".
+- Tickets can be older than the code. Where a ticket's contract details (param values, casing,
+  response shapes, file or type names) disagree with the code on the default branch, follow the
+  code and list each difference under "Decisions & assumptions".
 - Flyway migrations live in `booking-system/booking-system-app/src/main/resources/db/migration`.
   Only ever add a new migration with the next version number. Never edit an existing one.
 - Each repo may have its own `CLAUDE.md` with repo-specific rules (for example
