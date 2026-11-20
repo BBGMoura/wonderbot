@@ -31,6 +31,30 @@ Two repos are checked out side by side in this workspace:
 - Each repo may have its own `CLAUDE.md` with repo-specific rules (for example
   `booking-system/CLAUDE.md` on comments). Those rules apply on top of this file.
 
+### Glossary: UI names and backend names
+
+The UI uses these names. The backend still uses older names, and they're kept on purpose until the
+student portal work ([BOO-68](https://linear.app/acs-booking-system/issue/BOO-68/align-backend-names-with-the-ui-glossary)).
+**Use the UI name in anything a person reads**: labels, page titles, toasts, PR text and tests'
+visible strings. **Use the backend name in code** that talks to the API.
+
+| UI name | Meaning | Backend name |
+|---|---|---|
+| **Booking Portal** | The app | — |
+| **Booking** | A user hiring a room for a time slot | `Booking` |
+| **Booking type** | What the room is used for: **Private lesson**, **Practice**, **Group class**, **Closed**, **Other** | `ClassType`: `PRIVATE`, `PRACTICE`, `GROUP`, `UNAVAILABLE`, `OTHER` |
+| **Room rate** | The price per hour to hire a room for a booking type, and whether it's **Admin only** | `DanceClass` (`pricePerHour`, `role`: `ROLE_ADMIN` = admin only, `ROLE_USER` = anyone). Only one is active per booking type. |
+| **Shared room** | Other users can book the room at the same time (up to 3) | `shareable` |
+| **Recurring booking** | A named booking that repeats weekly, e.g. "Baby Ballet". Each date is a normal booking. | `recurring_booking`, plus `recurringBookingName` on bookings |
+| **User** / **Admin** | Roles. Only shown when inviting a user, and as an Admin badge in the users list. | `ROLE_USER` / `ROLE_ADMIN` |
+| *Later:* **Class fee** | What a student pays to join a group class (student portal) | — |
+
+**Pages:** Dashboard (`/dashboard`), Room calendar (`/calendar`), My bookings (`/my-bookings`),
+Profile (`/profile`), Admin › Users (`/admin/users`), Admin › Room rates (`/admin/rates`),
+Admin › Recurring bookings (`/admin/recurring`).
+
+Don't call users "teachers". Anyone the studio invites can book: teachers, organisations, and so on.
+
 ## Checks to run before opening a PR
 
 Run the checks for every repo you changed, and fix failures before you push.
