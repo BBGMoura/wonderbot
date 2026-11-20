@@ -49,7 +49,7 @@ visible strings. **Use the backend name in code** that talks to the API.
 | **User** / **Admin** | Roles. Only shown when inviting a user, and as an Admin badge in the users list. | `ROLE_USER` / `ROLE_ADMIN` |
 | *Later:* **Class fee** | What a student pays to join a group class (student portal) | — |
 
-**Pages:** Dashboard (`/dashboard`), Room calendar (`/calendar`), My bookings (`/my-bookings`),
+**Pages:** Dashboard (`/dashboard`), Room calendar (`/calendar`), My Bookings (`/my-bookings`),
 Profile (`/profile`), Admin › Users (`/admin/users`), Admin › Room rates (`/admin/rates`),
 Admin › Recurring bookings (`/admin/recurring`).
 
